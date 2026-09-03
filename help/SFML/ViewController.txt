@@ -1,0 +1,95 @@
+#include <iostream>
+#include <dSFML/Graphics.h>
+#include <cyx_SFML.h>
+
+
+
+constexpr int windowWidth = 1200;
+constexpr int windowHeight = 900;
+constexpr int halfWindowWidth = windowWidth / 2;
+constexpr int halfWindowHeight = windowHeight / 2;
+
+
+
+constexpr long double frac = 1.0L / 600.0L;
+
+
+int main()
+{
+	sf::RenderWindow window(sf::VideoMode({ windowWidth, windowHeight }), L"视角控制示例 (SFML 3.0)");
+	window.setFramerateLimit(100);
+	cyx::ViewController viewController(window);
+
+#if 0
+	cyx::ArcLine shape_ptr([](float alpha) { return sin(alpha); }, 0.f/*, cyx::OutlineType::Normal*/);
+	shape_ptr.setPosition({ 400.f, 300.f });
+	shape_ptr.setScale({ 100.f, 100.f });
+	shape_ptr.setOutlineThickness(1.f);
+	//shape.makeClose();
+#else
+	cyx::PolarShape shape([](float theta) { return 0.5f + 0.5f * std::sin(5.f * theta); }, { 0.f, 0.f }, cyx::OutlineType::Envelop);
+	shape.setPosition({ halfWindowWidth, halfWindowHeight });
+	shape.setScale({ 200.f, 200.f });
+	shape.setOutlineColor(sf::Color::Green);
+	shape.setOutlineThickness(100.f);
+	shape.makeClose();
+	std::cout << shape.getPointCount() << '\n' << '\n';
+#endif
+
+	//for (size_t i : rrange(shape.getPointCount())) {
+	//	std::cout << shape.getGlobalPoint(i) << '\n';
+	//}
+
+	uint32_t time = 0;
+	while (window.isOpen())
+	{
+		while (const std::optional event = window.pollEvent())
+		{
+			if (event->is<sf::Event::Closed>()) {
+				window.close();
+			}
+			else if (const auto* resized = event->getIf<sf::Event::Resized>()) {
+				// 处理窗口调整大小事件
+			}
+			else if (const auto* mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+				if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
+					viewController.startMoveView();
+				}
+			}
+			else if (const auto* mouseButtonReleased = event->getIf<sf::Event::MouseButtonReleased>()) {
+				if (mouseButtonReleased->button == sf::Mouse::Button::Left) {
+					viewController.endMoveView();
+				}
+			}
+			else if (const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
+				viewController.zoomView(mouseWheelScrolled);
+			}
+			else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+				if (keyPressed->scancode == sf::Keyboard::Scancode::Space) {
+					viewController.resetView();
+				}
+			}
+		}
+		if (cyx::isMouseIn(window))
+		{
+			if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+				viewController.moveView();
+			}
+		}
+		window.clear(sf::Color::Black);
+
+		if (time <= 600) {
+			shape.expandDomain((float)((cyx::pi_times2_l) * time * frac));
+		}
+		else if (time == 601) {
+			shape.makeClose();
+		}
+		shape.rotate(sf::radians(0.01f));
+		window.draw(shape);
+
+		window.display();
+		time++;
+	}
+
+	return 0;
+}

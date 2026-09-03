@@ -1,0 +1,150 @@
+cyx::reverse提供了一个视图，能够让你用范围for循环的语法反向访问容器。
+
+关于范围for循环：
+for (auto a : c) { std::cout << v; }
+等价于：
+for (auto I = c.begin(); I != c.end(); ++I) { std::cout << *I; }
+//I的类型是iterator
+
+
+而套上cyx::reverse后则可以看作：
+for (auto a : cyx::reverse(c)) { std::cout << v; }
+等价于：
+for (auto I = c.rbegin(); I != c.rend(); ++I) { std::cout << *I; }
+//I的类型是reverse_iterator
+
+
+
+
+如果想让自定义的类支持范围for循环遍历以及反向遍历，则必须支持一些方法，举例如下：
+
+template<typename T>
+class G {
+	static_assert(std::is_object_v<T>); //如果G是容器可以选择添加
+private:
+	class iterator {
+	public:
+		//^1.类型别名声明，供std::reverse_iterator<>使用，一般是以下五条
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = T;
+		using difference_type = std::ptrdiff_t;
+		using pointer = T*;
+		using reference = T&;
+
+		iterator() {} //1.构造函数
+
+		T& operator*() {/**/ } //2.解引用函数：如果G是容器则应当返回被访问对象的引用
+
+		iterator& operator++() {/**/ } //3.自增函数：用于正向移动迭代器
+
+		iterator& operator--() {/**/ } //^2.自减函数：用于反向移动迭代器
+
+		bool operator!= (const iterator& other) {/**/ } //4.比较函数：用于判断迭代器是否移动到了末尾
+
+		T funcs() {} //其他的成员函数
+
+	private:
+		T members; //一些成员变量
+	};
+
+public:
+	G() {} //构造函数
+	G(std::initializer_list<T> list) {} //大括号初始化方法（若G是容器一般可以定义，并配合函数std::copy()）
+
+	iterator begin() {/**/ } //5.开头迭代器
+	iterator end() {/**/ } //6.末尾迭代器
+	//若实现了以上6条，就可以使用范围for循环正向遍历
+
+	using reverse_iterator = std::reverse_iterator<iterator>; 
+	//^3.反向迭代器类型声明，使用std::reverse_iterator会在解引用时会自减后再调用iterator的解引用
+	reverse_iterator rbegin() { return reverse_iterator(end()); } //^4.开头的反向迭代器
+	reverse_iterator rend() { return reverse_iterator(begin()); } //^5.末尾的反向迭代器
+	//若又实现了以上^5条，则支持了cyx::reverse，方便反向遍历
+	
+
+	//如果G是容器，则最好定义：
+	T* data() {/**/ }
+	size_t size() {/**/ }
+	T& front() {/**/ } //返回第一个元素
+	T& back() {/**/ } //返回最后一个元素
+	bool empty() {/**/ } //应等价于size() == 0
+
+
+	//可按需选择定义：
+	size_t capacity() {/**/ }
+	void push_back(T v) {/**/ }
+	void pop_back() {/**/ }
+	T& operator[] (size_t offset) {/**/ }
+
+
+	//其他的成员函数：
+	T funcs() {/**/ }
+
+private:
+	T members; //一些成员变量
+};
+
+
+
+
+
+去注释版本：
+
+template<typename T>
+class G {
+	static_assert(std::is_object_v<T>);
+private:
+	class iterator {
+	public:
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = T;
+		using difference_type = std::ptrdiff_t;
+		using pointer = T*;
+		using reference = T&;
+
+		iterator() {} 
+
+		T& operator*() {/**/ }
+
+		iterator& operator++() {/**/ }
+
+		iterator& operator--() {/**/ }
+
+		bool operator!= (const iterator& other) {/**/ }
+
+		T funcs() {}
+
+	private:
+		T members;
+	};
+
+public:
+	G() {}
+	G(std::initializer_list<T> list) {}
+
+	iterator begin() {/**/ }
+	iterator end() {/**/ }
+
+	using reverse_iterator = std::reverse_iterator<iterator>;
+	reverse_iterator rbegin() { return reverse_iterator(end()); }
+	reverse_iterator rend() { return reverse_iterator(begin()); }
+	
+
+	T* data() {/**/ }
+	size_t size() {/**/ }
+	T& front() {/**/ }
+	T& back() {/**/ }
+	bool empty() {/**/ }
+
+
+	size_t capacity() {/**/ }
+	void push_back(T v) {/**/ }
+	void pop_back() {/**/ }
+	T& operator[] (size_t offset) {/**/ }
+
+
+	T funcs() {/**/ }
+
+private:
+	T members;
+};

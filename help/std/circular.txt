@@ -1,0 +1,24 @@
+	cyx::circular<int, 6> c{ 1,2,3,4,5,6 };
+	c.push_back(7);
+	c.push_back(8);
+	c.pop_back();
+
+	for (auto v : c) {
+		std::cout << v;
+	}
+
+	std::cout << '\n';
+	for (int j = 0; j < c.size(); j++) {
+		std::cout << c[j];
+	}
+
+	std::cout << '\n';
+	for (auto* p = c.data(); p != c.data() + c.capacity(); p++) {
+		std::cout << *p;
+	}
+
+
+
+
+
+以上代码中，第1, 2个for循环输出34567，即使用operator[]和使用迭代器访问cyx::circular的元素的行为是一样的。第3个for循环输出783456，直接访问cyx::circular中的成员变量Data，一般情况不推荐使用。
